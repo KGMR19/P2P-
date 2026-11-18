@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GhoFlux | Next-Gen P2P Messenger — Децентрализованное общение</title>
+    <!-- Подключение Tailwind CSS для быстрой и адаптивной верстки -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* --- Дизайн-токены из оригинального GhoFlux --- */
+        :root {
+            --bg-base: #060b14;
+            --bg-panel: rgba(16, 29, 49, 0.7);
+            --bg-element: rgba(30, 48, 77, 0.6);
+            --bg-hover: rgba(85, 182, 225, 0.12);
+            
+            --accent: #55b6e1;
+            --accent-glow: rgba(85, 182, 225, 0.4);
+            --accent-gradient: linear-gradient(135deg, var(--accent), #3a8bbd);
+            
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            
+            --msg-out: linear-gradient(135deg, #2b5278, #1e3c59);
+            --msg-in: rgba(24, 37, 51, 0.85);
+            
+            --danger: #ef4444;
+            --ghost: #a855f7;
+            --ghost-glow: rgba(168, 85, 247, 0.45);
+            
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(85, 182, 225, 0.09) 0%, transparent 45%),
+                radial-gradient(circle at 85% 45%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 40% 85%, rgba(85, 182, 225, 0.06) 0%, transparent 45%);
+            color: var(--text-main);
+            overflow-x: hidden;
+            transition: filter 0.5s ease, background-color 0.5s ease;
+        }
+
+        /* Режим призрака на уровне всей страницы */
+        body.ghost-active {
+            filter: saturate(0.45) contrast(0.95);
+            background-image: 
+                radial-gradient(circle at 20% 25%, rgba(168, 85, 247, 0.16) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.12) 0%, transparent 50%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-element); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* --- Анимации --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulseGhost {
+            0% { box-shadow: 0 0 10px var(--ghost-glow); }
+            50% { box-shadow: 0 0 28px var(--ghost); }
+            100% { box-shadow: 0 0 10px var(--ghost-glow); }
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+        .animate-pop-in { animation: popIn 0.4s ease forwards; }
+        .animate-float { animation: floatSlow 5s ease-in-out infinite; }
+
+        /* --- Стеклянные поверхности --- */
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+
+        .glass-card {
+            background: var(--bg-element);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 12px 30px -10px var(--accent-glow);
+        }
+
+        /* --- Фирменные кнопки и элементы --- */
+        .btn-accent {
+            background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+            color: #040811;
+            font-weight: 700;
+            border-radius: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 18px var(--accent-glow);
+        }
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px var(--accent-glow);
+            filter: brightness(1.08);
+        }
+
+        .btn-ghost-outline {
+            background: rgba(30, 48, 77, 0.5);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+        .btn-ghost-outline:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+            color: var(--accent);
+        }
+
+        .accent-text { color: var(--accent); transition: color 0.3s ease; }
+        .accent-border { border-color: var(--accent) !important; }
+        .accent-bg { background-color: var(--accent); }
+
+        /* Переключатель цветов */
+        .color-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .color-dot:hover, .color-dot.active {
+            border-color: #ffffff;
+            transform: scale(1.18);
+        }
+
+        /* Сообщения внутри интерактивного мокапа */
+        .mock-msg {
+            animation: fadeIn 0.3s ease;
+            max-width: 82%;
+        }
+        .mock-msg-in {
+            background: var(--msg-in);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px 16px 16px 4px;
+        }
+        .mock-msg-out {
+            background: var(--msg-out);
+            border-radius: 16px 16px 4px 16px;
+            align-self: flex-end;
+        }
+
+        /* Кнопка режима призрака */
+        .ghost-pulse {
+            animation: pulseGhost 2s infinite;
+            border-color: var(--ghost) !important;
+            color: var(--ghost) !important;
+        }
+
+        /* Аккордеон FAQ */
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.35s ease;
+            opacity: 0;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 240px;
+            opacity: 1;
+        }
+        .faq-item.open .faq-chevron {
+            transform: rotate(180deg);
+            color: var(--accent);
+        }
+
+        /* Модальное окно авторизации / запуска */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 8, 16, 0.78);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.25s ease;
+        }
+
+        /* Тост-уведомления вместо alert() */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--accent);
+            color: var(--text-main);
+            padding: 12px 18px;
+            border-radius: 14px;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+            animation: popIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ==========================================================================
+           ПОЛНОЦЕННОЕ ПРИЛОЖЕНИЕ МЕССЕНДЖЕРА GHOFLUX (ВСТРОЕННОЕ)
+           ========================================================================== */
+        #messenger-shell {
+            position: fixed;
+            inset: 0;
+            z-index: 1500;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(85, 182, 225, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        #messenger-shell.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Экран авторизации мессенджера */
+        #gf-auth-screen {
+            position: absolute;
+            inset: 0;
+            z-index: 200;
+            background: var(--bg-base);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            transition: opacity 0.4s ease;
+        }
+        .gf-auth-box {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 36px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 410px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            text-align: center;
+            animation: popIn 0.4s ease;
+            position: relative;
+        }
+        .gf-auth-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 14px;
+            background: var(--bg-element);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            font-size: 15px;
+            transition: 0.3s;
+        }
+        .gf-auth-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Основной контейнер чатов */
+        #gf-app {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+        }
+        .gf-app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Левая панель навигации */
+        .gf-nav-panel {
+            width: 78px;
+            background: rgba(10, 19, 32, 0.72);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 18px 0;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .gf-nav-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.25s;
+            position: relative;
+        }
+        .gf-nav-item:hover, .gf-nav-item.active {
+            background: var(--bg-element);
+            color: var(--accent);
+        }
+        .gf-nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Сайдбар чатов */
+        .gf-sidebar {
+            width: 320px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .gf-sidebar-header {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .gf-search-container {
+            display: flex;
+            align-items: center;
+            background: var(--bg-element);
+            border-radius: 12px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .gf-search-container:focus-within {
+            border-color: var(--accent);
+        }
+        .gf-search-container input {
+            background: none;
+            border: none;
+            color: white;
+            outline: none;
+            margin-left: 10px;
+            width: 100%;
+            font-size: 14px;
+        }
+        .gf-add-btn {
+            background: var(--bg-element);
+            border: none;
+            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .gf-add-btn:hover {
+            background: var(--accent);
+            color: #000;
+            transform: rotate(90deg);
+        }
+        .gf-chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 10px;
+        }
+        .gf-chat-item {
+            display: flex;
+            gap: 14px;
+            padding: 13px 14px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        .gf-chat-item:hover {
+            background: var(--bg-hover);
+        }
+        .gf-chat-item.active {
+            background: rgba(85, 182, 225, 0.12);
+            border-left: 3px solid var(--accent);
+        }
+        .gf-chat-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: var(--bg-element);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 17px;
+            color: var(--accent);
+            flex-shrink: 0;
+            position: relative;
+        }
+        .gf-status-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 13px;
+            height: 13px;
+            background: #10b981;
+            border: 2px solid #101d31;
+            border-radius: 50%;
+        }
+
+        /* Рабочая область переписки */
+        .gf-chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.03"><circle cx="50" cy="50" r="2" fill="%23ffffff"/></svg>');
+        }
+        .gf-chat-header {
+            height: 74px;
+            padding: 0 22px;
+            background: rgba(16, 29, 49, 0.72);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        .gf-action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 9px;
+            border-radius: 12px;
+            transition: 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .gf-action-btn:hover {
+            background: var(--bg-element);
+            color: var(--accent);
+        }
+
+        /* Сообщения */
+        .gf-messages-container {
+            flex: 1;
+            padding: 22px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .gf-message {
+            display: flex;
+            gap: 12px;
+            max-width: 76%;
+            animation: fadeIn 0.25s ease;
+            position: relative;
+        }
+        .gf-message.outgoing {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .gf-msg-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: var(--bg-element);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent);
+            font-weight: 700;
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+        .gf-message.outgoing .gf-msg-avatar {
+            display: none;
+        }
+        .gf-msg-bubble {
+            background: var(--msg-in);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-radius: 18px 18px 18px 4px;
+            font-size: 14.5px;
+            line-height: 1.5;
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            word-break: break-word;
+        }
+        .gf-message.outgoing .gf-msg-bubble {
+            background: var(--msg-out);
+            border-radius: 18px 18px 4px 18px;
+            border: none;
+        }
+        .gf-msg-context {
+            display: none;
+            position: absolute;
+            top: -34px;
+            right: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+            box-shadow: var(--shadow);
+            z-index: 50;
+        }
+        .gf-message.outgoing .gf-msg-context {
+            right: auto;
+            left: 0;
+        }
+        .gf-message:hover .gf-msg-context {
+            display: flex;
+        }
+        .gf-ctx-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .gf-ctx-btn:hover {
+            background: var(--bg-element);
+            color: var(--accent);
+        }
+
+        /* Плашка ответа */
+        .gf-reply-preview {
+            display: none;
+            padding: 10px 18px;
+            background: var(--bg-element);
+            border-left: 4px solid var(--accent);
+            margin: 0 22px 8px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+            position: relative;
+        }
+        .gf-reply-preview.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Панели смайлов и вложений */
+        .gf-panel {
+            display: none;
+            height: 270px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(24px);
+            border-top: 1px solid var(--glass-border);
+            flex-direction: column;
+        }
+        .gf-panel.active {
+            display: flex;
+            animation: fadeIn 0.25s ease;
+        }
+        .gf-panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .gf-panel-tab {
+            padding: 12px 22px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .gf-panel-tab.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        .gf-panel-content {
+            flex: 1;
+            padding: 14px;
+            overflow-y: auto;
+            display: none;
+        }
+        .gf-panel-content.active {
+            display: block;
+        }
+        .gf-emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+            gap: 8px;
+        }
+        .gf-emoji {
+            font-size: 22px;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .gf-emoji:hover {
+            background: var(--bg-element);
+            transform: scale(1.18);
+        }
+        .gf-attach-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            sm:grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        @media (min-width: 640px) {
+            .gf-attach-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        .gf-attach-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px;
+            background: var(--bg-element);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: 0.25s;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+        .gf-attach-item:hover {
+            background: var(--accent);
+            color: #000;
+            transform: translateY(-2px);
+        }
+
+        /* Модалки внутри мессенджера */
+        .gf-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 2500;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .gf-modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Адаптив мессенджера для мобильных */
+        @media (max-width: 768px) {
+            .gf-nav-panel {
+                width: 60px;
+                padding: 12px 0;
+            }
+            .gf-sidebar {
+                width: calc(100vw - 60px);
+            }
+            .gf-sidebar.mobile-hidden {
+                display: none;
+            }
+            .gf-chat-area {
+                display: none;
+            }
+            .gf-chat-area.mobile-active {
+                display: flex;
+                width: calc(100vw - 60px);
+            }
+            .gf-back-btn {
+                display: flex !important;
+            }
+            .gf-msg-context {
+                display: none !important;
+            }
+        }
+        .gf-back-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-[#55b6e1] selection:text-[#060b14]">
+
+    <!-- 1. НАВИГАЦИОННАЯ ПАНЕЛЬ (HEADER) -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-panel border-t-0 border-x-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Логотип GhoFlux -->
+            <a href="#" class="flex items-center gap-3 group">
+                <svg class="w-10 h-10 accent-text transition-transform duration-300 group-hover:rotate-12" style="filter: drop-shadow(0 0 10px var(--accent-glow));" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" fill="none"/>
+                    <path d="M 32 68 L 68 32 M 50 32 L 68 32 L 68 50" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <span class="text-2xl font-bold tracking-wide text-white">Gho<span class="accent-text italic">Flux</span></span>
+            </a>
+
+            <!-- Навигационные ссылки (Desktop) -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-[#94a3b8]">
+                <a href="#features" class="hover:text-white transition-colors">Преимущества</a>
+                <a href="#architecture" class="hover:text-white transition-colors">Архитектура P2P</a>
+                <a href="#ghost-section" class="hover:text-white transition-colors">Режим призрака</a>
+                <a href="#security" class="hover:text-white transition-colors">Безопасность</a>
+            </nav>
+
+            <!-- Правая часть: Переключатель акцента + Кнопка запуска -->
+            <div class="flex items-center gap-3 sm:gap-5">
+                <!-- Переключатель акцентного цвета в реальном времени -->
+                <div class="hidden sm:flex items-center gap-2 bg-[#1e304d]/60 px-3 py-1.5 rounded-full border border-white/10" title="Акцентный цвет интерфейса">
+                    <div class="color-dot active" style="background:#55b6e1;" onclick="setAccent('#55b6e1', this)"></div>
+                    <div class="color-dot" style="background:#a855f7;" onclick="setAccent('#a855f7', this)"></div>
+                    <div class="color-dot" style="background:#10b981;" onclick="setAccent('#10b981', this)"></div>
+                    <div class="color-dot" style="background:#f59e0b;" onclick="setAccent('#f59e0b', this)"></div>
+                </div>
+
+                <!-- Индикатор Ghost Mode в шапке -->
+                <button id="header-ghost-btn" onclick="toggleGhostMode()" class="p-2.5 rounded-xl bg-[#1e304d]/70 border border-white/10 text-[#94a3b8] hover:text-white transition-all" title="Переключить режим призрака">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9v12l2.5-2.5L10 21l2-3 2 3 2.5-2.5L19 21V9c0-3.87-3.13-7-7-7zm-2.5 9c-.83 0-1.5-.67-1.5-1.5S8.67 8 9.5 8s1.5.67 1.5 1.5S10.33 11 9.5 11zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 8 14.5 8s1.5.67 1.5 1.5S15.33 11 14.5 11z"/></svg>
+                </button>
+
+                <!-- Кнопка запуска Web-клиента -->
+                <button onclick="openMessengerShell(true)" class="btn-accent px-4 sm:px-5 py-2.5 text-xs sm:text-sm cursor-pointer">
+                    Запустить Web-клиент
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. HERO-СЕКЦИЯ + ИНТЕРАКТИВНЫЙ МОКАП МЕССЕНДЖЕРА -->
+    <section class="pt-32 pb-20 lg:pt-40 lg:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+            
+            <!-- Левая колонка: Оффер и CTA -->
+            <div class="lg:col-span-6 space-y-7 animate-fade-in">
+                <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full glass-panel text-xs font-semibold tracking-wider uppercase accent-text">
+                    <span class="w-2 h-2 rounded-full accent-bg animate-ping"></span>
+                    Zero-Server • WebRTC End-to-End
+                </div>
+
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight text-white">
+                    Общение без серверов, посредников и <span class="accent-text italic">цифрового следа</span>
+                </h1>
+
+                <p class="text-base sm:text-lg text-[#94a3b8] leading-relaxed max-w-xl">
+                    <strong class="text-white">GhoFlux</strong> — децентрализованный P2P-мессенджер нового поколения. Сообщения, звонки и файлы передаются напрямую между устройствами по зашифрованным каналам WebRTC. Никаких облачных баз данных и слежки.
+                </p>
+
+                <!-- Кнопки действий -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-2">
+                    <button onclick="openMessengerShell(true)" class="btn-accent px-7 py-4 text-base flex items-center justify-center gap-2.5 cursor-pointer">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        Открыть мессенджер
+                    </button>
+                    <button onclick="openMessengerShell(false)" class="btn-ghost-outline px-7 py-4 text-base font-semibold flex items-center justify-center gap-2 cursor-pointer">
+                        Войти в Сеть
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Карточка 3: Аудио и видеозвонки без посредников (6 колонок) -->
+            <div class="md:col-span-6 glass-card rounded-3xl p-7 sm:p-8">
+                <div class="flex items-start justify-between mb-5">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </div>
+                    <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400">SRTP Encrypted</span>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2.5">Аудио и видеозвонки без посредников</h3>
+                <p class="text-[#94a3b8] text-sm leading-relaxed">
+                    Кристально чистый звук Opus и HD-видеопоток идут напрямую от камеры вашего устройства к собеседнику с минимальной задержкой и сквозным шифрованием медиапотока.
+                </p>
+            </div>
+
+            <!-- Карточка 4: Мгновенный обмен файлами, гео и опросами (6 колонок) -->
+            <div class="md:col-span-6 glass-card rounded-3xl p-7 sm:p-8">
+                <div class="flex items-start justify-between mb-5">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                    </div>
+                    <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400">Direct Stream</span>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2.5">Мгновенный обмен файлами, гео и опросами</h3>
+                <p class="text-[#94a3b8] text-sm leading-relaxed">
+                    Отправляйте документы, фотографии, геолокацию и интерактивные опросы напрямую между узлами без ограничений облачных хранилищ и сжатия качества.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 4. ИНТЕРАКТИВНАЯ ВИЗУАЛИЗАЦИЯ P2P-СЕТИ (CANVAS) -->
+    <section id="architecture" class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-white/10">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-widest accent-text">Сравнение топологий</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-1">Как работает прямой туннель GhoFlux</h2>
+                    <p class="text-sm text-[#94a3b8] mt-1">Переключайте режимы, чтобы увидеть разницу в маршрутизации пакетов данных.</p>
+                </div>
+
+                <!-- Переключатель режима визуализации -->
+                <div class="flex p-1.5 rounded-2xl bg-[#060b14]/80 border border-white/10 self-start">
+                    <button id="btn-mode-p2p" onclick="setTopologyMode('p2p')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold btn-accent cursor-pointer transition">
+                        GhoFlux (Прямой P2P)
+                    </button>
+                    <button id="btn-mode-central" onclick="setTopologyMode('central')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#94a3b8] hover:text-white cursor-pointer transition">
+                        Обычный мессенджер
+                    </button>
+                </div>
+            </div>
+
+            <!-- Контейнер для адаптивного Canvas -->
+            <div class="relative w-full h-72 sm:h-80 rounded-2xl bg-[#060b14]/90 border border-white/10 overflow-hidden" id="canvas-wrapper">
+                <canvas id="p2p-canvas"></canvas>
+                
+                <!-- Индикатор статуса шифрования поверх Canvas -->
+                <div id="topology-badge" class="absolute bottom-4 left-4 right-4 sm:right-auto glass-panel px-4 py-2.5 rounded-xl flex items-center gap-3 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="topology-status-text" class="text-slate-200 font-medium">
+                        Прямое соединение WebRTC: <strong class="accent-text">Узел A ⇄ Узел B</strong> • Сквозное шифрование DTLS-SRTP активно
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. СЕКЦИЯ «БЕЗОПАСНОСТЬ, ДИСКЛЕЙМЕР И FAQ» -->
+    <section id="security" class="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <div class="text-center mb-12">
+            <span class="text-xs font-bold uppercase tracking-widest accent-text">Прозрачность и защита</span>
+            <h2 class="text-3xl font-extrabold text-white mt-2">Безопасность и ответы на вопросы</h2>
+        </div>
+
+        <!-- FAQ Аккордеон -->
+        <div class="space-y-4 mb-12">
+            <div class="faq-item glass-card rounded-2xl overflow-hidden open">
+                <button onclick="toggleFaq(this)" class="w-full px-6 py-5 text-left flex items-center justify-between font-semibold text-white text-sm sm:text-base cursor-pointer">
+                    <span>Где хранятся мои переписки и медиафайлы?</span>
+                    <svg class="faq-chevron w-5 h-5 fill-current text-[#94a3b8] transition-transform duration-300" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </button>
+                <div class="faq-answer px-6 pb-5 text-sm text-[#94a3b8] leading-relaxed">
+                    Исключительно в оперативной или локальной памяти вашего устройства. GhoFlux не использует облачные базы данных для хранения истории переписок — после закрытия сессии или очистки кэша данные бесследно исчезают.
+                </div>
+            </div>
+
+            <div class="faq-item glass-card rounded-2xl overflow-hidden">
+                <button onclick="toggleFaq(this)" class="w-full px-6 py-5 text-left flex items-center justify-between font-semibold text-white text-sm sm:text-base cursor-pointer">
+                    <span>Как работает шифрование в WebRTC-соединении?</span>
+                    <svg class="faq-chevron w-5 h-5 fill-current text-[#94a3b8] transition-transform duration-300" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </button>
+                <div class="faq-answer px-6 pb-5 text-sm text-[#94a3b8] leading-relaxed">
+                    Каждый P2P-канал защищен на уровне протокола с помощью DTLS (Datagram Transport Layer Security) для текстовых данных и файлов, а также SRTP для аудио- и видеозвонков. Ключи шифрования генерируются локально на устройствах участников.
+                </div>
+            </div>
+
+            <div class="faq-item glass-card rounded-2xl overflow-hidden">
+                <button onclick="toggleFaq(this)" class="w-full px-6 py-5 text-left flex items-center justify-between font-semibold text-white text-sm sm:text-base cursor-pointer">
+                    <span>Что делает «Режим призрака» в GhoFlux?</span>
+                    <svg class="faq-chevron w-5 h-5 fill-current text-[#94a3b8] transition-transform duration-300" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </button>
+                <div class="faq-answer px-6 pb-5 text-sm text-[#94a3b8] leading-relaxed">
+                    Режим призрака переводит интерфейс в приглушенную стелс-палитру с фиолетовой индикацией, скрывает яркие акценты и блокирует отправку метаданных об активности пользователя в чате.
+                </div>
+            </div>
+        </div>
+
+        <!-- Официальный дисклеймер в стиле экрана входа GhoFlux -->
+        <div class="glass-panel rounded-2xl p-6 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V8h2v4z"/></svg>
+            </div>
+            <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+                <strong class="text-white">Правовой дисклеймер:</strong> GhoFlux — децентрализованный P2P-мессенджер. Данные не хранятся на серверах. Вы несете персональную ответственность за передаваемую информацию и соблюдение законодательства вашей юрисдикции при использовании прямых каналов связи.
+            </p>
+        </div>
+    </section>
+
+    <!-- 6. ФУТЕР -->
+    <footer class="border-t border-white/10 bg-[#040810]/90 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <!-- Логотип и статус -->
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-8 h-8 accent-text" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" fill="none"/>
+                        <path d="M 32 68 L 68 32 M 50 32 L 68 32 L 68 50" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                    <span class="text-xl font-bold text-white">Gho<span class="accent-text italic">Flux</span></span>
+                </div>
+                <span class="hidden sm:inline text-white/20">|</span>
+                <div class="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/25">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    P2P Network: Online • WebRTC Ready
+                </div>
+            </div>
+
+            <!-- Быстрые ссылки -->
+            <div class="flex flex-wrap justify-center gap-6 text-xs sm:text-sm text-[#94a3b8]">
+                <a href="#features" class="hover:text-white transition">Преимущества</a>
+                <a href="#architecture" class="hover:text-white transition">Протокол</a>
+                <a href="#ghost-section" class="hover:text-white transition">Ghost Mode</a>
+                <button onclick="openMessengerShell(true)" class="accent-text hover:underline cursor-pointer">Web-клиент</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================================================
+         ВСТРОЕННЫЙ ПОЛНОЦЕННЫЙ P2P-МЕССЕНДЖЕР GHOFLUX (ОТКРЫВАЕТСЯ НА ЭТОЙ ЖЕ СТРАНИЦЕ)
+         ========================================================================== -->
+    <div id="messenger-shell">
+        
+        <!-- 1. Экран входа в сеть GhoFlux -->
+        <div id="gf-auth-screen">
+            <div class="gf-auth-box">
+                <button onclick="closeMessengerShell()" class="absolute top-5 left-5 text-xs text-[#94a3b8] hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    На лендинг
+                </button>
+
+                <svg class="w-16 h-16 mx-auto mb-3 accent-text mt-4" style="filter: drop-shadow(0 0 15px var(--accent-glow));" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6" fill="none"/>
+                    <path d="M 32 68 L 68 32 M 50 32 L 68 32 L 68 50" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+                <div class="text-3xl font-bold mb-6 tracking-wide text-white">Gho<span class="accent-text italic">Flux</span></div>
+                
+                <input type="text" class="gf-auth-input" id="gf-login-input" placeholder="Логин (например, neo_node)" onkeydown="if(event.key==='Enter') gfLogin()">
+                <input type="password" class="gf-auth-input" id="gf-pass-input" placeholder="Пароль" onkeydown="if(event.key==='Enter') gfLogin()">
+                
+                <button class="btn-accent w-full py-4 text-base cursor-pointer mb-3" onclick="gfLogin()">Войти в Сеть</button>
+                <button class="btn-ghost-outline w-full py-3 text-xs font-semibold cursor-pointer" onclick="gfQuickDemoEnter()">Быстрый гостевой вход (без пароля)</button>
+                
+                <div class="text-[11px] text-[#94a3b8] mt-5 leading-relaxed text-justify">
+                    GhoFlux — децентрализованный P2P-мессенджер. Данные не хранятся на серверах. Вы несете ответственность за передаваемую информацию.
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Основной интерфейс мессенджера -->
+        <div id="gf-app">
+            <div class="gf-app-container">
+                
+                <!-- Левая панель навигации -->
+                <div class="gf-nav-panel">
+                    <div class="gf-nav-item active" title="Чаты">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                    </div>
+                    <div class="gf-nav-item" onclick="gfOpenModal('gf-settings-modal')" title="Настройки">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+                    </div>
+                    <div class="gf-nav-item" onclick="toggleGhostMode()" id="gf-nav-ghost-btn" title="Режим призрака">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9v12l2.5-2.5L10 21l2-3 2 3 2.5-2.5L19 21V9c0-3.87-3.13-7-7-7zm-2.5 9c-.83 0-1.5-.67-1.5-1.5S8.67 8 9.5 8s1.5.67 1.5 1.5S10.33 11 9.5 11zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 8 14.5 8s1.5.67 1.5 1.5S15.33 11 14.5 11z"/></svg>
+                    </div>
+
+                    <!-- Кнопка возврата на лендинг внизу навигации -->
+                    <div class="gf-nav-item mt-auto text-rose-400 hover:text-rose-300" onclick="closeMessengerShell()" title="Вернуться на лендинг">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                    </div>
+                </div>
+
+                <!-- Сайдбар со списком чатов -->
+                <div class="gf-sidebar" id="gf-sidebar">
+                    <div class="gf-sidebar-header">
+                        <div class="flex items-center justify-between">
+                            <div class="text-lg font-bold text-white flex items-center gap-2">
+                                Gho<span class="accent-text italic">Flux</span>
+                                <span id="gf-current-user-badge" class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/10 text-[#94a3b8]">@guest</span>
+                            </div>
+                            <button onclick="closeMessengerShell()" class="text-xs text-[#94a3b8] hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                                На сайт
+                            </button>
+                        </div>
+
+                        <div class="gf-search-container">
+                            <svg class="w-4 h-4 fill-current text-[#94a3b8]" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                            <input type="text" placeholder="Поиск чатов..." id="gf-search-input" oninput="gfFilterChats()">
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">Активные узлы</span>
+                            <button class="gf-add-btn" onclick="gfOpenModal('gf-add-modal')" title="Добавить контакт или группу">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="gf-chat-list" id="gf-chat-list-container">
+                        <div class="gf-chat-item active" data-chat-id="st.bot" onclick="gfSelectChat('st.bot', 'st', 'Официальный помощник GhoFlux', this)">
+                            <div class="gf-chat-avatar">st<div class="gf-status-dot"></div></div>
+                            <div class="flex-1 overflow-hidden flex flex-col justify-center">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="gf-chat-name font-semibold text-sm text-white">st.bot</span>
+                                    <span class="text-[11px] text-[#94a3b8]">10:00</span>
+                                </div>
+                                <div class="gf-chat-last text-xs text-[#94a3b8] truncate">Официальный помощник GhoFlux</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Область чата -->
+                <div class="gf-chat-area mobile-active" id="gf-chat-area">
+                    <div class="gf-chat-header">
+                        <div class="flex items-center gap-3">
+                            <button class="gf-action-btn gf-back-btn" onclick="gfCloseChatMobile()" title="К списку чатов">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                            </button>
+                            <div class="flex items-center gap-3.5 cursor-pointer" onclick="gfOpenModal('gf-profile-modal')">
+                                <div id="gf-header-avatar" class="gf-msg-avatar" style="width:44px; height:44px; border-radius:14px; font-size:17px;">st</div>
+                                <div>
+                                    <div class="font-bold text-base text-white" id="gf-header-chat-name">st.bot</div>
+                                    <div class="text-xs accent-text flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full accent-bg"></span>
+                                        <span id="gf-header-chat-sub">В сети • P2P WebRTC</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <button class="gf-action-btn" onclick="gfStartCall('audio')" title="Аудиозвонок">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                            </button>
+                            <button class="gf-action-btn" onclick="gfStartCall('video')" title="Видеозвонок">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Сообщения -->
+                    <div class="gf-messages-container" id="gf-messages-container"></div>
+
+                    <!-- Плашка ответа -->
+                    <div class="gf-reply-preview" id="gf-reply-preview">
+                        <div class="font-semibold accent-text mb-0.5 text-xs">Ответ на сообщение:</div>
+                        <div id="gf-reply-text" class="truncate max-w-[90%] text-slate-200"></div>
+                        <span class="absolute right-3 top-2.5 cursor-pointer text-rose-400 hover:text-rose-300" onclick="gfCancelReply()">✕</span>
+                    </div>
+
+                    <!-- Поле ввода -->
+                    <div class="p-4 sm:px-6 bg-[#101d31]/75 backdrop-blur-xl border-t border-white/10">
+                        <div class="flex gap-3 items-center">
+                            <button class="gf-action-btn h-12 w-12 rounded-2xl bg-[#1e304d]/60" onclick="gfTogglePanel('gf-attach-panel')" title="Вложения">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                            </button>
+                            
+                            <div class="flex-1 bg-[#1e304d]/75 rounded-2xl flex items-center px-3.5 h-12 border border-transparent focus-within:border-[#55b6e1] transition">
+                                <button class="gf-action-btn p-1.5 mr-1" onclick="gfTogglePanel('gf-emoji-panel')" title="Смайлы и стикеры">
+                                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                                </button>
+                                <input type="text" class="flex-1 bg-transparent border-none text-white outline-none text-sm placeholder-[#94a3b8]" id="gf-msg-input" placeholder="Написать сообщение в P2P канал..." onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); gfSendMessage(); }">
+                            </div>
+                            
+                            <button class="btn-accent rounded-full w-12 h-12 flex items-center justify-center shrink-0 cursor-pointer" onclick="gfSendMessage()" title="Отправить">
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Панель смайлов и стикеров -->
+                    <div class="gf-panel" id="gf-emoji-panel">
+                        <div class="gf-panel-tabs">
+                            <div class="gf-panel-tab active" onclick="gfSwitchPanelTab('emoji', this)">Смайлы</div>
+                            <div class="gf-panel-tab" onclick="gfSwitchPanelTab('stickers', this)">Стикеры</div>
+                        </div>
+                        <div class="gf-panel-content active" id="gf-content-emoji">
+                            <div class="gf-emoji-grid" id="gf-emoji-grid"></div>
+                        </div>
+                        <div class="gf-panel-content" id="gf-content-stickers">
+                            <div class="gf-emoji-grid text-3xl">
+                                <span class="gf-emoji" onclick="gfSendSticker('🐱')">🐱</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🐶')">🐶</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🦊')">🦊</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🚀')">🚀</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('👻')">👻</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🔥')">🔥</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🛰️')">🛰️</span>
+                                <span class="gf-emoji" onclick="gfSendSticker('🔐')">🔐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Панель вложений -->
+                    <div class="gf-panel" id="gf-attach-panel">
+                        <div class="gf-panel-tabs">
+                            <div class="gf-panel-tab active">Передача по P2P</div>
+                        </div>
+                        <div class="gf-panel-content active">
+                            <div class="gf-attach-grid">
+                                <div class="gf-attach-item" onclick="gfSendAttachment('Фотография (HD)', '🖼️')">
+                                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                                    <span>Фото</span>
+                                </div>
+                                <div class="gf-attach-item" onclick="gfSendAttachment('Зашифрованный документ', '📄')">
+                                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                                    <span>Файл</span>
+                                </div>
+                                <div class="gf-attach-item" onclick="gfSendAttachment('Координаты узла', '📍')">
+                                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                    <span>Гео</span>
+                                </div>
+                                <div class="gf-attach-item" onclick="gfSendAttachment('Децентрализованный опрос', '📊')">
+                                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                                    <span>Опрос</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЫЕ ОКНА МЕССЕНДЖЕРА -->
+    <!-- Добавление контакта или группы -->
+    <div class="gf-modal-overlay" id="gf-add-modal" onclick="if(event.target===this) gfCloseModal('gf-add-modal')">
+        <div class="glass-panel rounded-3xl w-full max-w-md p-7 animate-pop-in border border-white/15">
+            <div class="text-xl font-bold mb-5 accent-text">Новый P2P канал</div>
+            <div class="flex gap-2.5 mb-5">
+                <button id="gf-tab-contact" class="flex-1 py-2.5 rounded-xl font-semibold text-sm btn-accent cursor-pointer" onclick="gfSwitchAddTab('contact')">Контакт</button>
+                <button id="gf-tab-group" class="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-[#1e304d] text-[#94a3b8] cursor-pointer" onclick="gfSwitchAddTab('group')">Группа</button>
+            </div>
+            
+            <div id="gf-add-contact-form">
+                <input type="text" id="gf-new-contact-name" class="gf-auth-input" placeholder="Имя пользователя (например, @alex)">
+                <input type="text" id="gf-new-contact-note" class="gf-auth-input" placeholder="Заметка или ключ узла (необязательно)">
+            </div>
+            
+            <div id="gf-add-group-form" style="display:none;">
+                <input type="text" id="gf-new-group-name" class="gf-auth-input" placeholder="Название P2P группы">
+                <input type="text" id="gf-new-group-members" class="gf-auth-input" placeholder="Участники (через запятую)">
+            </div>
+
+            <div class="flex gap-3 mt-4">
+                <button class="btn-ghost-outline flex-1 py-3 text-sm font-semibold cursor-pointer" onclick="gfCloseModal('gf-add-modal')">Отмена</button>
+                <button class="btn-accent flex-1 py-3 text-sm cursor-pointer" onclick="gfAddNewChat()">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Профиль узла -->
+    <div class="gf-modal-overlay" id="gf-profile-modal" onclick="if(event.target===this) gfCloseModal('gf-profile-modal')">
+        <div class="glass-panel rounded-3xl w-full max-w-md p-7 text-center animate-pop-in border border-white/15">
+            <div id="gf-profile-avatar" class="gf-msg-avatar mx-auto mb-4" style="width:76px; height:76px; border-radius:22px; font-size:28px;">st</div>
+            <div id="gf-profile-name" class="text-2xl font-bold text-white mb-1">st.bot</div>
+            <div id="gf-profile-desc" class="accent-text text-sm mb-5">Официальный помощник GhoFlux</div>
+            <div class="bg-[#1e304d]/70 p-4 rounded-2xl text-left text-sm mb-6 space-y-2 border border-white/5">
+                <div><span class="text-[#94a3b8]">Идентификатор узла:</span> <span id="gf-profile-id" class="font-mono text-white">GF-NODE-01</span></div>
+                <div><span class="text-[#94a3b8]">Протокол:</span> <span class="text-emerald-400">WebRTC Direct P2P (AES-256)</span></div>
+            </div>
+            <button class="btn-accent w-full py-3.5 text-sm cursor-pointer" onclick="gfCloseModal('gf-profile-modal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Настройки мессенджера -->
+    <div class="gf-modal-overlay" id="gf-settings-modal" onclick="if(event.target===this) gfCloseModal('gf-settings-modal')">
+        <div class="glass-panel rounded-3xl w-full max-w-md p-7 animate-pop-in border border-white/15">
+            <div class="text-xl font-bold mb-5 accent-text">Настройки GhoFlux</div>
+            
+            <div class="flex justify-between items-center py-4 border-b border-white/10">
+                <div class="text-sm font-medium text-white">Акцентный цвет</div>
+                <div class="flex gap-2.5">
+                    <div class="color-dot active" style="background:#55b6e1;" onclick="setAccent('#55b6e1', this)"></div>
+                    <div class="color-dot" style="background:#a855f7;" onclick="setAccent('#a855f7', this)"></div>
+                    <div class="color-dot" style="background:#10b981;" onclick="setAccent('#10b981', this)"></div>
+                    <div class="color-dot" style="background:#f59e0b;" onclick="setAccent('#f59e0b', this)"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center py-4 border-b border-white/10">
+                <div class="text-sm font-medium text-white">Режим призрака (Ghost Mode)</div>
+                <input type="checkbox" id="gf-ghost-checkbox" class="w-4 h-4 accent-purple-500 cursor-pointer" onchange="toggleGhostMode()">
+            </div>
+
+            <div class="flex justify-between items-center py-4">
+                <div class="text-sm font-medium text-white">Звуковые уведомления P2P</div>
+                <input type="checkbox" checked class="w-4 h-4 cursor-pointer">
+            </div>
+
+            <div class="mt-5">
+                <button class="btn-accent w-full py-3.5 text-sm cursor-pointer" onclick="gfCloseModal('gf-settings-modal')">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Контейнер для всплывающих уведомлений (без alert) -->
+    <div id="toast-container"></div>
+
+    <script>
+        /* ==========================================================================
+           1. УПРАВЛЕНИЕ АКЦЕНТНЫМ ЦВЕТОМ И РЕЖИМОМ ПРИЗРАКА
+           ========================================================================== */
+        let isGhostMode = false;
+
+        function setAccent(color, dotEl) {
+            document.documentElement.style.setProperty('--accent', color);
+            document.documentElement.style.setProperty('--accent-glow', color + '66');
+            
+            document.querySelectorAll('.color-dot').forEach(d => {
+                if (d.style.backgroundColor && d.getAttribute('onclick')?.includes(color)) {
+                    d.classList.add('active');
+                } else {
+                    d.classList.remove('active');
+                }
+            });
+            if (dotEl) dotEl.classList.add('active');
+            
+            showToast(`Акцентный цвет обновлен: ${color}`);
+        }
+
+        function toggleGhostMode() {
+            isGhostMode = !isGhostMode;
+            const body = document.body;
+            const headerBtn = document.getElementById('header-ghost-btn');
+            const mockBtn = document.getElementById('mock-ghost-btn');
+            const gfNavGhost = document.getElementById('gf-nav-ghost-btn');
+            const gfCheckbox = document.getElementById('gf-ghost-checkbox');
+            const cardLabel = document.getElementById('ghost-btn-label');
+
+            if (isGhostMode) {
+                body.classList.add('ghost-active');
+                headerBtn?.classList.add('ghost-pulse');
+                mockBtn?.classList.add('ghost-pulse');
+                gfNavGhost?.classList.add('ghost-pulse');
+                if (gfCheckbox) gfCheckbox.checked = true;
+                if (cardLabel) cardLabel.innerText = 'Отключить режим призрака';
+                showToast('👻 Режим призрака активирован: стелс-интерфейс включен');
+            } else {
+                body.classList.remove('ghost-active');
+                headerBtn?.classList.remove('ghost-pulse');
+                mockBtn?.classList.remove('ghost-pulse');
+                gfNavGhost?.classList.remove('ghost-pulse');
+                if (gfCheckbox) gfCheckbox.checked = false;
+                if (cardLabel) cardLabel.innerText = 'Протестировать режим призрака';
+                showToast('Режим призрака выключен');
+            }
+        }
+
+        /* ==========================================================================
+           2. ИНТЕРАКТИВНЫЙ МИНИ-ЧАТ В HERO-СЕКЦИИ
+           ========================================================================== */
+        const mockMessages = document.getElementById('mock-messages');
+        const mockInput = document.getElementById('mock-input');
+
+        const botReplies = [
+            "Пакет доставлен напрямую по WebRTC DataChannel за 11 мс! 🚀",
+            "Шифрование DTLS-SRTP подтверждено. Ни один сервер не видел это сообщение 🔐",
+            "Отлично! Попробуй также переключить акцентный цвет в шапке сайта 🎨",
+            "Узел st.bot на связи. Готов к передаче файлов или P2P-звонку 🛰️"
+        ];
+        let replyIndex = 0;
+
+        function toggleMockEmoji() {
+            const bar = document.getElementById('mock-emoji-bar');
+            bar.classList.toggle('hidden');
+        }
+
+        function insertMockEmoji(emoji) {
+            mockInput.value += emoji;
+            mockInput.focus();
+        }
+
+        function sendMockMessage() {
+            const text = mockInput.value.trim();
+            if (!text) return;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            // Исходящее сообщение пользователя
+            const outWrap = document.createElement('div');
+            outWrap.className = 'mock-msg flex flex-col items-end self-end';
+            outWrap.innerHTML = `
+                <div class="mock-msg-out px-4 py-2.5 text-sm text-white leading-relaxed shadow-md">
+                    ${escapeHtml(text)}
+                </div>
+                <div class="text-[10px] text-[#94a3b8] mt-1 mr-1 flex items-center gap-1">
+                    <span>${time}</span>
+                    <span class="accent-text">✓✓</span>
+                </div>
+            `;
+            mockMessages.appendChild(outWrap);
+            mockMessages.scrollTop = mockMessages.scrollHeight;
+            mockInput.value = '';
+
+            // Имитация ответа от st.bot по P2P
+            setTimeout(() => {
+                const replyText = botReplies[replyIndex % botReplies.length];
+                replyIndex++;
+
+                const inWrap = document.createElement('div');
+                inWrap.className = 'mock-msg flex gap-3';
+                inWrap.innerHTML = `
+                    <div class="w-8 h-8 rounded-xl bg-[#1e304d] flex items-center justify-center font-mono font-bold text-xs accent-text shrink-0">st</div>
+                    <div>
+                        <div class="mock-msg-in px-4 py-2.5 text-sm text-slate-100 leading-relaxed">
+                            ${replyText}
+                        </div>
+                        <div class="text-[10px] text-[#94a3b8] mt-1 ml-1">${time}</div>
+                    </div>
+                `;
+                mockMessages.appendChild(inWrap);
+                mockMessages.scrollTop = mockMessages.scrollHeight;
+            }, 650);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[m]);
+        }
+
+        /* ==========================================================================
+           3. ИНТЕРАКТИВНАЯ ВИЗУАЛИЗАЦИЯ ТОПОЛОГИИ P2P НА CANVAS
+           ========================================================================== */
+        let topologyMode = 'p2p'; // 'p2p' | 'central'
+        const canvas = document.getElementById('p2p-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animFrameId;
+
+        function setTopologyMode(mode) {
+            topologyMode = mode;
+            const btnP2p = document.getElementById('btn-mode-p2p');
+            const btnCentral = document.getElementById('btn-mode-central');
+            const statusText = document.getElementById('topology-status-text');
+
+            if (mode === 'p2p') {
+                btnP2p.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold btn-accent cursor-pointer transition';
+                btnCentral.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#94a3b8] hover:text-white cursor-pointer transition';
+                statusText.innerHTML = 'Прямое соединение WebRTC: <strong class="accent-text">Узел A ⇄ Узел B</strong> • Сквозное шифрование DTLS-SRTP активно';
+            } else {
+                btnCentral.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-rose-500 text-white cursor-pointer transition';
+                btnP2p.className = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#94a3b8] hover:text-white cursor-pointer transition';
+                statusText.innerHTML = 'Централизованный сервер: <strong class="text-rose-400">Узел A → Сервер → Узел B</strong> • Метаданные и логи оседают в облаке';
+            }
+            initParticles();
+        }
+
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            if (!wrapper) return;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = wrapper.clientWidth * dpr;
+            canvas.height = wrapper.clientHeight * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    progress: i / 6,
+                    direction: i % 2 === 0 ? 1 : -1,
+                    speed: 0.0045 + Math.random() * 0.002
+                });
+            }
+        }
+
+        function drawNode(x, y, label, sublabel, color, isServer = false) {
+            // Внешнее свечение
+            ctx.beginPath();
+            ctx.arc(x, y, isServer ? 34 : 28, 0, Math.PI * 2);
+            ctx.fillStyle = color + '22';
+            ctx.fill();
+
+            // Основной круг
+            ctx.beginPath();
+            ctx.arc(x, y, isServer ? 24 : 20, 0, Math.PI * 2);
+            ctx.fillStyle = '#101d31';
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = color;
+            ctx.stroke();
+
+            // Текст внутри
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+
+            // Подпись снизу
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.fillText(sublabel, x, y + (isServer ? 42 : 36));
+        }
+
+        function animateTopology() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            if (!wrapper) return;
+            const w = wrapper.clientWidth;
+            const h = wrapper.clientHeight - 25;
+
+            ctx.clearRect(0, 0, w, h + 25);
+
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#55b6e1';
+            const nodeAX = w * 0.2;
+            const nodeAY = h * 0.48;
+            const nodeBX = w * 0.8;
+            const nodeBY = h * 0.48;
+            const serverX = w * 0.5;
+            const serverY = h * 0.35;
+
+            if (topologyMode === 'p2p') {
+                // Прямая линия между Узлом A и Узлом B
+                ctx.beginPath();
+                ctx.moveTo(nodeAX, nodeAY);
+                ctx.lineTo(nodeBX, nodeBY);
+                ctx.strokeStyle = accentColor + '55';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Бейдж шифрования по центру линии
+                ctx.fillStyle = '#101d31';
+                ctx.strokeStyle = accentColor;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(w * 0.5 - 65, nodeAY - 13, 130, 26, 12);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = accentColor;
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('AES-256 P2P TUNNEL', w * 0.5, nodeAY + 1);
+
+                // Движение пакетов напрямую
+                particles.forEach(p => {
+                    p.progress += p.speed * p.direction;
+                    if (p.progress > 1) { p.progress = 1; p.direction = -1; }
+                    if (p.progress < 0) { p.progress = 0; p.direction = 1; }
+
+                    const px = nodeAX + (nodeBX - nodeAX) * p.progress;
+                    const py = nodeAY;
+
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+                    ctx.fillStyle = accentColor;
+                    ctx.fill();
+                });
+
+                drawNode(nodeAX, nodeAY, 'A', 'Узел А (Вы)', accentColor);
+                drawNode(nodeBX, nodeBY, 'B', 'Узел Б (Контакт)', accentColor);
+            } else {
+                // Линии через центральный сервер
+                ctx.beginPath();
+                ctx.moveTo(nodeAX, nodeAY);
+                ctx.lineTo(serverX, serverY);
+                ctx.lineTo(nodeBX, nodeBY);
+                ctx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Движение пакетов через сервер
+                particles.forEach(p => {
+                    p.progress += p.speed * p.direction;
+                    if (p.progress > 1) { p.progress = 1; p.direction = -1; }
+                    if (p.progress < 0) { p.progress = 0; p.direction = 1; }
+
+                    let px, py;
+                    if (p.progress < 0.5) {
+                        const t = p.progress * 2;
+                        px = nodeAX + (serverX - nodeAX) * t;
+                        py = nodeAY + (serverY - nodeAY) * t;
+                    } else {
+                        const t = (p.progress - 0.5) * 2;
+                        px = serverX + (nodeBX - serverX) * t;
+                        py = serverY + (nodeBY - serverY) * t;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fb7185';
+                    ctx.fill();
+                });
+
+                drawNode(serverX, serverY, 'SRV', 'Центральный сервер', '#f43f5e', true);
+                drawNode(nodeAX, nodeAY, 'A', 'Клиент А', '#94a3b8');
+                drawNode(nodeBX, nodeBY, 'B', 'Клиент Б', '#94a3b8');
+            }
+
+            animFrameId = requestAnimationFrame(animateTopology);
+        }
+
+        /* ==========================================================================
+           4. УПРАВЛЕНИЕ ВСТРОЕННЫМ МЕССЕНДЖЕРОМ GHOFLUX (ЕДИНОЕ ПРИЛОЖЕНИЕ)
+           ========================================================================== */
+        let gfCurrentUser = '';
+        let gfActiveChatId = 'st.bot';
+        let gfReplyingTo = null;
+
+        // Хранилище историй чатов в памяти текущей сессии
+        const gfChatsData = {
+            'st.bot': {
+                name: 'st.bot',
+                prefix: 'st',
+                subtitle: 'Официальный помощник GhoFlux',
+                messages: [
+                    { sender: 'in', prefix: 'st', text: 'Приветствую в GhoFlux! Это защищенный децентрализованный канал связи.', time: '10:00' },
+                    { sender: 'in', prefix: 'st', text: 'Нажми на <b>+</b> в левом меню, чтобы добавить контакт или создать группу. Используй панели снизу для отправки файлов, стикеров или смайлов.', time: '10:01' }
+                ]
+            }
+        };
+
+        // Инициализация сетки смайлов в мессенджере
+        const gfEmojis = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤯','😳','🥵','🥶','😱','😨','😰','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','👻','🚀','🔐','⚡','🔥','🛰️'];
+        const gfEmojiGrid = document.getElementById('gf-emoji-grid');
+        if (gfEmojiGrid) {
+            gfEmojis.forEach(e => {
+                const span = document.createElement('span');
+                span.className = 'gf-emoji';
+                span.innerText = e;
+                span.onclick = () => {
+                    const inp = document.getElementById('gf-msg-input');
+                    inp.value += e;
+                    inp.focus();
+                };
+                gfEmojiGrid.appendChild(span);
+            });
+        }
+
+        // Открытие мессенджера прямо поверх/вместо лендинга
+        function openMessengerShell(skipAuth = false) {
+            const shell = document.getElementById('messenger-shell');
+            const authScreen = document.getElementById('gf-auth-screen');
+            const appScreen = document.getElementById('gf-app');
+
+            shell.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            if (skipAuth || gfCurrentUser) {
+                if (!gfCurrentUser) gfCurrentUser = 'guest_node';
+                document.getElementById('gf-current-user-badge').innerText = '@' + gfCurrentUser;
+                authScreen.style.display = 'none';
+                appScreen.style.display = 'block';
+                gfRenderMessages();
+                showToast('P2P Web-клиент GhoFlux запущен');
+            } else {
+                authScreen.style.display = 'flex';
+                authScreen.style.opacity = '1';
+                appScreen.style.display = 'none';
+            }
+        }
+
+        // Возврат обратно на лендинг
+        function closeMessengerShell() {
+            const shell = document.getElementById('messenger-shell');
+            shell.classList.remove('active');
+            document.body.style.overflow = '';
+            gfTogglePanel(null);
+        }
+
+        // Авторизация в форме входа мессенджера
+        function gfLogin() {
+            const l = document.getElementById('gf-login-input').value.trim();
+            const p = document.getElementById('gf-pass-input').value.trim();
+            if (!l || !p) {
+                showToast('Введите логин и пароль для инициализации узла!');
+                return;
+            }
+            gfCurrentUser = l.replace(/^@/, '');
+            document.getElementById('gf-current-user-badge').innerText = '@' + gfCurrentUser;
+
+            const authScreen = document.getElementById('gf-auth-screen');
+            authScreen.style.opacity = '0';
+            setTimeout(() => {
+                authScreen.style.display = 'none';
+                document.getElementById('gf-app').style.display = 'block';
+                gfRenderMessages();
+                showToast(`Добро пожаловать в сеть GhoFlux, ${gfCurrentUser}!`);
+            }, 350);
+        }
+
+        function gfQuickDemoEnter() {
+            gfCurrentUser = 'guest_node';
+            document.getElementById('gf-current-user-badge').innerText = '@guest_node';
+            document.getElementById('gf-auth-screen').style.display = 'none';
+            document.getElementById('gf-app').style.display = 'block';
+            gfRenderMessages();
+            showToast('Гостевой P2P-узел активирован');
+        }
+
+        // Переключение активного чата
+        function gfSelectChat(chatId, prefix, subtitle, el) {
+            gfActiveChatId = chatId;
+            const chat = gfChatsData[chatId];
+            if (!chat) return;
+
+            document.getElementById('gf-header-chat-name').innerText = chat.name;
+            document.getElementById('gf-header-avatar').innerText = chat.prefix;
+            document.getElementById('gf-header-chat-sub').innerText = 'В сети • ' + (subtitle || chat.subtitle);
+
+            document.getElementById('gf-profile-name').innerText = chat.name;
+            document.getElementById('gf-profile-avatar').innerText = chat.prefix;
+            document.getElementById('gf-profile-desc').innerText = chat.subtitle;
+            document.getElementById('gf-profile-id').innerText = 'GF-' + chat.name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+
+            document.querySelectorAll('.gf-chat-item').forEach(i => i.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            // Адаптив для мобильных
+            if (window.innerWidth <= 768) {
+                document.getElementById('gf-sidebar').classList.add('mobile-hidden');
+                document.getElementById('gf-chat-area').classList.add('mobile-active');
+            }
+
+            gfCancelReply();
+            gfRenderMessages();
+        }
+
+        function gfCloseChatMobile() {
+            document.getElementById('gf-sidebar').classList.remove('mobile-hidden');
+            document.getElementById('gf-chat-area').classList.remove('mobile-active');
+        }
+
+        // Отрисовка сообщений активного чата
+        function gfRenderMessages() {
+            const container = document.getElementById('gf-messages-container');
+            container.innerHTML = '';
+            const chat = gfChatsData[gfActiveChatId];
+            if (!chat) return;
+
+            chat.messages.forEach((msg, idx) => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'gf-message' + (msg.sender === 'out' ? ' outgoing' : '');
+
+                const replyHtml = msg.replyTo
+                    ? `<div class="text-xs border-l-2 accent-border pl-2 mb-1.5 opacity-75">Ответ: ${escapeHtml(msg.replyTo)}</div>`
+                    : '';
+
+                const checkIcon = msg.sender === 'out'
+                    ? `<svg class="w-3.5 h-3.5 fill-current accent-text" viewBox="0 0 24 24"><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/></svg>`
+                    : '';
+
+                msgDiv.innerHTML = `
+                    <div class="gf-msg-avatar">${msg.prefix || chat.prefix}</div>
+                    <div class="flex flex-col max-w-full">
+                        <div class="gf-msg-bubble">
+                            ${replyHtml}
+                            <div>${msg.text}</div>
+                            <div class="gf-msg-context">
+                                <button class="gf-ctx-btn" onclick="gfReplyToMessage(${idx})">Ответить</button>
+                                <button class="gf-ctx-btn text-rose-400" onclick="gfDeleteMessage(${idx})">Удалить</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-end items-center gap-1 mt-1 text-[11px] text-[#94a3b8]">
+                            <span>${msg.time}</span>
+                            ${checkIcon}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(msgDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Отправка сообщения
+        function gfSendMessage() {
+            const input = document.getElementById('gf-msg-input');
+            const rawText = input.value.trim();
+            if (!rawText && !gfReplyingTo) return;
+
+            const chat = gfChatsData[gfActiveChatId];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            chat.messages.push({
+                sender: 'out',
+                text: escapeHtml(rawText),
+                replyTo: gfReplyingTo,
+                time: time
+            });
+
+            gfUpdateChatPreview(gfActiveChatId, rawText, time);
+            input.value = '';
+            gfCancelReply();
+            gfTogglePanel(null);
+            gfRenderMessages();
+
+            // Автоответ собеседника/бота по P2P
+            const targetChatId = gfActiveChatId;
+            setTimeout(() => {
+                const targetChat = gfChatsData[targetChatId];
+                if (!targetChat) return;
+                const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const replyText = targetChatId === 'st.bot'
+                    ? 'Принято по прямому каналу WebRTC! Система работает штатно. 🚀'
+                    : `Сообщение получено узлом ${targetChat.name} (AES-256) 🔐`;
+
+                targetChat.messages.push({
+                    sender: 'in',
+                    prefix: targetChat.prefix,
+                    text: replyText,
+                    time: replyTime
+                });
+                gfUpdateChatPreview(targetChatId, replyText, replyTime);
+                if (gfActiveChatId === targetChatId) {
+                    gfRenderMessages();
+                }
+            }, 850);
+        }
+
+        function gfUpdateChatPreview(chatId, lastText, time) {
+            const item = document.querySelector(`.gf-chat-item[data-chat-id="${CSS.escape(chatId)}"]`);
+            if (item) {
+                const lastEl = item.querySelector('.gf-chat-last');
+                if (lastEl) lastEl.innerText = lastText.replace(/<[^>]*>/g, '');
+            }
+        }
+
+        function gfReplyToMessage(idx) {
+            const chat = gfChatsData[gfActiveChatId];
+            if (!chat || !chat.messages[idx]) return;
+            const plain = chat.messages[idx].text.replace(/<[^>]*>/g, '');
+            gfReplyingTo = plain.slice(0, 55);
+            document.getElementById('gf-reply-text').innerText = gfReplyingTo;
+            document.getElementById('gf-reply-preview').classList.add('active');
+            document.getElementById('gf-msg-input').focus();
+        }
+
+        function gfCancelReply() {
+            gfReplyingTo = null;
+            document.getElementById('gf-reply-preview').classList.remove('active');
+        }
+
+        function gfDeleteMessage(idx) {
+            const chat = gfChatsData[gfActiveChatId];
+            if (!chat) return;
+            chat.messages.splice(idx, 1);
+            gfRenderMessages();
+            showToast('Сообщение удалено локально');
+        }
+
+        // Панели смайлов и вложений
+        function gfTogglePanel(panelId) {
+            ['gf-emoji-panel', 'gf-attach-panel'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (id === panelId && !el.classList.contains('active')) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        function gfSwitchPanelTab(type, tabEl) {
+            document.querySelectorAll('#gf-emoji-panel .gf-panel-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#gf-emoji-panel .gf-panel-content').forEach(c => c.classList.remove('active'));
+            tabEl.classList.add('active');
+            document.getElementById('gf-content-' + type).classList.add('active');
+        }
+
+        function gfSendSticker(sticker) {
+            const chat = gfChatsData[gfActiveChatId];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            chat.messages.push({
+                sender: 'out',
+                text: `<span style="font-size: 38px; line-height: 1.2;">${sticker}</span>`,
+                time: time
+            });
+            gfUpdateChatPreview(gfActiveChatId, `Стикер ${sticker}`, time);
+            gfTogglePanel(null);
+            gfRenderMessages();
+        }
+
+        function gfSendAttachment(name, icon) {
+            const chat = gfChatsData[gfActiveChatId];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            chat.messages.push({
+                sender: 'out',
+                text: `<div class="flex items-center gap-2.5"><span class="text-2xl">${icon}</span><span>Передано по P2P: <strong>${escapeHtml(name)}</strong></span></div>`,
+                time: time
+            });
+            gfUpdateChatPreview(gfActiveChatId, `${icon} ${name}`, time);
+            gfTogglePanel(null);
+            gfRenderMessages();
+            showToast(`Файл «${name}» передан напрямую собеседнику`);
+        }
+
+        // Модалки мессенджера и создание чатов/групп
+        function gfOpenModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function gfCloseModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function gfSwitchAddTab(type) {
+            const tabContact = document.getElementById('gf-tab-contact');
+            const tabGroup = document.getElementById('gf-tab-group');
+            if (type === 'contact') {
+                tabContact.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm btn-accent cursor-pointer';
+                tabGroup.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm bg-[#1e304d] text-[#94a3b8] cursor-pointer';
+                document.getElementById('gf-add-contact-form').style.display = 'block';
+                document.getElementById('gf-add-group-form').style.display = 'none';
+            } else {
+                tabGroup.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm btn-accent cursor-pointer';
+                tabContact.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm bg-[#1e304d] text-[#94a3b8] cursor-pointer';
+                document.getElementById('gf-add-contact-form').style.display = 'none';
+                document.getElementById('gf-add-group-form').style.display = 'block';
+            }
+        }
+
+        function gfAddNewChat() {
+            const isContact = document.getElementById('gf-add-contact-form').style.display !== 'none';
+            let name = '';
+            let prefix = '';
+            let subtitle = '';
+
+            if (isContact) {
+                name = document.getElementById('gf-new-contact-name').value.trim();
+                const note = document.getElementById('gf-new-contact-note').value.trim();
+                if (!name) {
+                    showToast('Введите имя пользователя!');
+                    return;
+                }
+                prefix = name.replace(/^@/, '').charAt(0).toUpperCase() || 'U';
+                subtitle = note || 'Прямой P2P контакт';
+            } else {
+                name = document.getElementById('gf-new-group-name').value.trim();
+                const members = document.getElementById('gf-new-group-members').value.trim();
+                if (!name) {
+                    showToast('Введите название группы!');
+                    return;
+                }
+                prefix = '👥';
+                subtitle = members ? `Участники: ${members}` : 'Децентрализованная группа';
+            }
+
+            if (!gfChatsData[name]) {
+                gfChatsData[name] = {
+                    name: name,
+                    prefix: prefix,
+                    subtitle: subtitle,
+                    messages: [
+                        { sender: 'in', prefix: prefix, text: `Защищенный P2P канал «${escapeHtml(name)}» инициализирован.`, time: 'Сейчас' }
+                    ]
+                };
+
+                const list = document.getElementById('gf-chat-list-container');
+                const div = document.createElement('div');
+                div.className = 'gf-chat-item';
+                div.setAttribute('data-chat-id', name);
+                div.onclick = function () { gfSelectChat(name, prefix, subtitle, this); };
+                div.innerHTML = `
+                    <div class="gf-chat-avatar">${prefix}<div class="gf-status-dot"></div></div>
+                    <div class="flex-1 overflow-hidden flex flex-col justify-center">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="gf-chat-name font-semibold text-sm text-white">${escapeHtml(name)}</span>
+                            <span class="text-[11px] text-[#94a3b8]">Сейчас</span>
+                        </div>
+                        <div class="gf-chat-last text-xs text-[#94a3b8] truncate">Канал создан</div>
+                    </div>
+                `;
+                list.appendChild(div);
+                gfSelectChat(name, prefix, subtitle, div);
+            } else {
+                const existing = document.querySelector(`.gf-chat-item[data-chat-id="${CSS.escape(name)}"]`);
+                gfSelectChat(name, prefix, subtitle, existing);
+            }
+
+            document.getElementById('gf-new-contact-name').value = '';
+            document.getElementById('gf-new-contact-note').value = '';
+            document.getElementById('gf-new-group-name').value = '';
+            document.getElementById('gf-new-group-members').value = '';
+            gfCloseModal('gf-add-modal');
+            showToast(`Чат «${name}» готов к работе`);
+        }
+
+        function gfFilterChats() {
+            const query = document.getElementById('gf-search-input').value.toLowerCase();
+            document.querySelectorAll('.gf-chat-item').forEach(item => {
+                const name = item.querySelector('.gf-chat-name').innerText.toLowerCase();
+                item.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function gfStartCall(type) {
+            const chat = gfChatsData[gfActiveChatId];
+            showToast(`Инициализация ${type === 'video' ? 'видео' : 'аудио'} звонка с ${chat ? chat.name : 'узлом'} через WebRTC...`);
+        }
+
+        function toggleFaq(btn) {
+            const item = btn.closest('.faq-item');
+            item.classList.toggle('open');
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.innerHTML = `<span class="w-2 h-2 rounded-full accent-bg shrink-0"></span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                toast.style.transition = '0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function () {
+            resizeCanvas();
+            initParticles();
+            animateTopology();
+        };
+    </script>
+</body>
+</html>
